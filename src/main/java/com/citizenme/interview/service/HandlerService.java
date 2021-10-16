@@ -9,7 +9,6 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -42,6 +41,7 @@ public class HandlerService implements RequestStreamHandler {
                 try {
                     final JSONObject jsonObject = new JSONObject(line);
                     final String queryString = jsonObject.getString(Constant.inputKey);
+                    logger.log("queryString: " + queryString);
                     final List<String> onlyNumbersString = findIntegers(queryString);
 
                     if (CollectionUtils.isNotEmpty(onlyNumbersString)) {
@@ -49,7 +49,7 @@ public class HandlerService implements RequestStreamHandler {
                     }
 
                 } catch (JSONException exception) {
-                    logger.log("Error Stack Trace: " + exception.toString());
+                    logger.log("Error: " + exception.toString());
                 }
             });
 
