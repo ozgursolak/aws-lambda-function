@@ -17,11 +17,8 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.citizenme.interview.constant.Constant;
-import com.google.gson.JsonSyntaxException;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 public class HandlerService implements RequestStreamHandler {
 
@@ -31,7 +28,7 @@ public class HandlerService implements RequestStreamHandler {
 
         final LambdaLogger logger = context.getLogger();
 
-        logger.log(context.getFunctionName() + " method is invoked.");
+        logger.log(context.getFunctionName() + " function is invoked.");
 
         final InputStreamReader inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.US_ASCII);
         final OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream, StandardCharsets.US_ASCII);
@@ -39,48 +36,24 @@ public class HandlerService implements RequestStreamHandler {
         final PrintWriter writer = new PrintWriter(outputStreamWriter);
         final List<Integer> numbers = new ArrayList<>();
 
-        try {
-            reader.lines().forEach(line -> {
-                try {
-                    final JSONObject jsonObject = new JSONObject(line);
-                    final String queryString = jsonObject.getString(Constant.inputKey);
+        reader.lines().forEach(line -> {
+            final List<String> onlyNumbersString = findIntegers(line);
 
-                    logger.log("queryString: " + queryString);
-
-                    final List<String> onlyNumbersString = findIntegers(queryString);
-
-                    if (CollectionUtils.isNotEmpty(onlyNumbersString)) {
-                        onlyNumbersString.forEach(number -> numbers.add(Integer.valueOf(number)));
-                    }
-
-                } catch (JSONException exception) {
-                    final String exceptionName = exception.getMessage();
-
-                    logger.log(exceptionName);
-                    writer.write(exceptionName);
-                }
-            });
-
-            final String result = "{\"output\":" + numbers + "}";
-
-            writer.write(result);
-
-            if (writer.checkError()) {
-                logger.log(Constant.writerErrorMessage);
-                return;
+            if (CollectionUtils.isNotEmpty(onlyNumbersString)) {
+                onlyNumbersString.forEach(number -> numbers.add(Integer.valueOf(number)));
             }
+        });
 
-            logger.log(context.getFunctionName() + " method is successfully completed.");
+        final String result = "{\"output\":" + numbers + "}";
 
-        } catch (IllegalStateException | JsonSyntaxException exception) {
-            final String exceptionName = exception.getMessage();
+        writer.write(result);
 
-            logger.log(exceptionName);
-            writer.write(exceptionName);
-        } finally {
-            reader.close();
-            writer.close();
+        if (writer.checkError()) {
+            logger.log(Constant.writerErrorMessage);
         }
+
+        reader.close();
+        writer.close();
     }
 
     private List<String> findIntegers(final String stringToSearch) {
