@@ -19,6 +19,7 @@ import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.citizenme.interview.constant.Constant;
 import com.google.gson.JsonSyntaxException;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -29,11 +30,13 @@ public class HandlerService implements RequestStreamHandler {
         throws IOException {
 
         final LambdaLogger logger = context.getLogger();
+
+        logger.log(context.getFunctionName() + " method is invoked.");
+
         final InputStreamReader inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.US_ASCII);
         final OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream, StandardCharsets.US_ASCII);
         final BufferedReader reader = new BufferedReader(inputStreamReader);
         final PrintWriter writer = new PrintWriter(outputStreamWriter);
-
         final List<Integer> numbers = new ArrayList<>();
 
         try {
@@ -41,7 +44,9 @@ public class HandlerService implements RequestStreamHandler {
                 try {
                     final JSONObject jsonObject = new JSONObject(line);
                     final String queryString = jsonObject.getString(Constant.inputKey);
+
                     logger.log("queryString: " + queryString);
+
                     final List<String> onlyNumbersString = findIntegers(queryString);
 
                     if (CollectionUtils.isNotEmpty(onlyNumbersString)) {
@@ -49,20 +54,29 @@ public class HandlerService implements RequestStreamHandler {
                     }
 
                 } catch (JSONException exception) {
-                    logger.log("Error: " + exception.toString());
+                    final String exceptionName = exception.getMessage();
+
+                    logger.log(exceptionName);
+                    writer.write(exceptionName);
                 }
             });
 
             final String result = "{\"output\":" + numbers + "}";
 
-            logger.log(result);
             writer.write(result);
 
             if (writer.checkError()) {
                 logger.log(Constant.writerErrorMessage);
+                return;
             }
+
+            logger.log(context.getFunctionName() + " method is successfully completed.");
+
         } catch (IllegalStateException | JsonSyntaxException exception) {
-            logger.log(exception.toString());
+            final String exceptionName = exception.getMessage();
+
+            logger.log(exceptionName);
+            writer.write(exceptionName);
         } finally {
             reader.close();
             writer.close();
@@ -70,6 +84,10 @@ public class HandlerService implements RequestStreamHandler {
     }
 
     private List<String> findIntegers(final String stringToSearch) {
+        if (StringUtils.isEmpty(stringToSearch)) {
+            return null;
+        }
+
         final Pattern integerPattern = Pattern.compile(Constant.regexPatternForIntegers);
         final Matcher matcher = integerPattern.matcher(stringToSearch);
         final List<String> integerList = new ArrayList<>();
